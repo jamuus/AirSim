@@ -187,8 +187,12 @@ void MavLinkConnectionImpl::sendMessage(const MavLinkMessageBase& msg)
 #if MAVLINK_CRC_EXTRA
 	crc_accumulate(crc_extra, &m.checksum);
 #endif
+
+	// these macros use old style cast.
+	STRICT_MODE_OFF
 	mavlink_ck_a(&m) = (uint8_t)(m.checksum & 0xFF);
 	mavlink_ck_b(&m) = (uint8_t)(m.checksum >> 8);
+	STRICT_MODE_ON
 
 	// send the message, now that it is ready
 	sendMessage(reinterpret_cast<const MavLinkMessage&>(m));
@@ -353,7 +357,7 @@ void MavLinkConnectionImpl::drainQueue()
 			try {
 				(*ptr).handler(sharedPtr, message);
 			}
-			catch (std::runtime_error e) {
+			catch (std::exception e) {
 				Utils::logError("MavLinkConnection subscriber threw exception: %s", e.what());
 			}
 		}

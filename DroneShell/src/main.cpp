@@ -21,15 +21,14 @@ namespace msr { namespace airlib {
 
 struct CommandContext {
 public:
-    RpcLibClient& client;
+    RpcLibClient client;
     AsyncTasker tasker;
 };
 
 using DroneCommandParameters = SimpleShell<CommandContext>::ShellCommandParameters;
 using DroneCommandSwitch = SimpleShell<CommandContext>::ShellCommandSwitch;
 
-class DroneCommand : public SimpleShell<CommandContext>::ShellCommand
-{
+class DroneCommand : public SimpleShell<CommandContext>::ShellCommand {
 public:
     DroneCommand(std::string name, std::string help)
         : ShellCommand(name,help)
@@ -933,14 +932,14 @@ See RecordPose for information about log file format")
 };
 
 
-std::string beforeScriptStartCallback(const DroneCommandParameters& params, std::string scriptFilePath) 
-{
-    return false;
-}
-bool afterScriptEndCallback(const DroneCommandParameters& params, std::string scriptFilePath) 
-{
-    return false;
-}
+// std::string beforeScriptStartCallback(const DroneCommandParameters& params, std::string scriptFilePath) 
+// {
+//     return false;
+// }
+// bool afterScriptEndCallback(const DroneCommandParameters& params, std::string scriptFilePath) 
+// {
+//     return false;
+// }
 // std::string beforeScriptCommandStartCallback(const DroneCommandParameters& params) {
 //     params.context->client.newTask();
 // }
@@ -960,17 +959,13 @@ std::string server_address("127.0.0.1");
 bool parseCommandLine(int argc, const char* argv[])
 {
     // parse command line
-    for (int i = 1; i < argc; i++)
-    {
+    for (int i = 1; i < argc; i++) {
         const char* arg = argv[i];
-        if (arg[0] == '-' || arg[0] == '/')
-        {
+        if (arg[0] == '-' || arg[0] == '/') {
             std::string name = arg + 1;
-            if (name == "server" && i + 1 < argc)
-            {
+            if (name == "server" && i + 1 < argc) {
                 server_address = argv[++i];
-            }
-            else {
+            } else {
                 return false;
             }
         }
@@ -996,9 +991,7 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    RpcLibClient client(server_address);
-
-    CommandContext command_context{ client };
+    CommandContext command_context{ /*RpcClient*/{server_address}, /*AsyncTasker*/ {} };
 
     command_context.tasker.setErrorHandler([](std::exception& e) {
         try {

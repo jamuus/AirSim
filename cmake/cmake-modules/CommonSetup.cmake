@@ -14,7 +14,12 @@ macro(CommonSetup)
         set(BOOST_OVERRIDES " -Wno-error=undef  -Wno-error=ctor-dtor-privacy -Wno-error=old-style-cast  -Wno-error=shadow -Wno-error=redundant-decls -Wno-error=missing-field-initializers  -Wno-error=unused-parameter") 
         ## Mavlink requires turning off -pedantic  and -Wno-error=switch-default 
         set(MAVLINK_OVERRIDES "-Wno-error=switch-default ") 
-        set(CMAKE_CXX_FLAGS "-std=c++14 -ggdb -Wall -Wextra  -Wstrict-aliasing -Werror -fmax-errors=2 -Wunreachable-code -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option ${MAVLINK_OVERRIDES} ${BOOST_OVERRIDES}  -Wl,--no-as-needed -ldl -ldl ${CMAKE_CXX_FLAGS}")
+		set(RPC_LIB_DEFINES "-D MSGPACK_PP_VARIADICS_MSVC=0")
+        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+            set(CMAKE_CXX_STANDARD 14)
+        else ()
+            set(CMAKE_CXX_FLAGS "-std=c++14 -ggdb -Wall -Wextra  -Wstrict-aliasing -Werror -fmax-errors=2 -Wunreachable-code -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wmissing-include-dirs -Wnoexcept -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option ${MAVLINK_OVERRIDES} ${BOOST_OVERRIDES} ${RPC_LIB_DEFINES} -Wl,--no-as-needed -ldl -ldl ${CMAKE_CXX_FLAGS}")
+        endif ()
         set(BUILD_PLATFORM "x64")
 
     ELSE()
@@ -34,6 +39,7 @@ macro(CommonSetup)
     
     IF(UNIX)
         set(BUILD_TYPE "linux")
+        set(RPC_LIB "${AIRSIM_ROOT}/AirLib/deps/rpclib/lib/${BUILD_PLATFORM}/${BUILD_TYPE}/librpc.a")
     ELSE()
         string( TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
         if("${BUILD_TYPE}" STREQUAL "debug")
@@ -43,9 +49,9 @@ macro(CommonSetup)
         else()
           message(FATAL_ERROR "Please specify '-D CMAKE_BUILD_TYPE=Debug' or Release on the cmake command line")
         endif()
+        set(RPC_LIB "${AIRSIM_ROOT}/AirLib/deps/rpclib/lib/${BUILD_PLATFORM}/${BUILD_TYPE}/rpc")
     endif() 
 
-    set(RPC_LIB "${AIRSIM_ROOT}/AirLib/deps/rpclib/lib/${BUILD_PLATFORM}/${BUILD_TYPE}/rpc")
 
 endmacro(CommonSetup)
 

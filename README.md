@@ -32,6 +32,8 @@ Follow the steps above to build and set up the Unreal environment. Plugin your P
 
 ![record screenshot](docs/images/DroneGIF-03.gif)
 
+See [Walkthoguth Demo Video](https://youtu.be/HNWdYrtw3f0).
+
 [More details](docs/manual_flight.md)
 
 ## Gathering training data
@@ -69,6 +71,7 @@ We welcome contributions to help advance research frontiers.
 
 - [More on our design](docs/design.md)
 - [More on our code structure](docs/code_structure.md)
+- [Contibution Guidelines](docs/contributing.md)
 
 # Contact
 Joing the [AirSim group at Facebook](https://www.facebook.com/groups/1225832467530667/) to stay up to date or ask any questions.
