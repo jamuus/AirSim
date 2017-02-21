@@ -57,8 +57,9 @@ int main()
 
     // This assumes you are running DroneServer already on the same machine.
     // DroneServer must be running first.
-    msr::airlib::RpcLibClient client;
-
+	uint16_t __port = 41451;
+    msr::airlib::RpcLibClient client("127.0.0.1", __port);
+	cout << "Connected to port " << __port << endl;
     try {
 
         cout << "Press Enter to arm the drone" << endl; cin.get();

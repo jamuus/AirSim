@@ -35,6 +35,7 @@ static const int pixhawkFMUV1ProductId = 16;     ///< Product ID for PX4 FMU V1 
 #define MAV_STATE_ENUM_END (static_cast<uint8_t>(MAV_STATE::MAV_STATE_POWEROFF)+1)
 
 typedef common_utils::Utils Utils;
+typedef unsigned int uint;
 using namespace mavlinkcom; 
 
 struct FlagName {
@@ -56,14 +57,13 @@ void DebugOutput(const char* message, ...) {
 	va_list args;
 	va_start(args, message);
 
-	char* buffer = new char[8000];
-	vsprintf(buffer, message, args);
-	OutputDebugStringA(buffer);
+	std::unique_ptr<char[]> buffer(new char[8000]);
+	vsprintf(buffer.get(), message, args);
+	OutputDebugStringA(buffer.get());
 	OutputDebugStringA("\n");
 	fflush(stdout);
 
 	va_end(args);
-	delete buffer;
 }
 #else 
 // how do you write to the debug output windows on Unix ?
@@ -71,12 +71,11 @@ void DebugOutput(const char* message, ...) {
 	va_list args;
 	va_start(args, message);
 
-	char* buffer = new char[8000];
-	vsprintf(buffer, message, args);
+	std::unique_ptr<char[]> buffer(new char[8000]);
+	vsprintf(buffer.get(), message, args);
 	fflush(stdout);
 
 	va_end(args);
-	delete buffer;
 }
 #endif
 
@@ -448,15 +447,15 @@ void mavlink_quaternion_to_dcm(const float quaternion[4], float dcm[3][3])
 	double bSq = b * b;
 	double cSq = c * c;
 	double dSq = d * d;
-	dcm[0][0] = aSq + bSq - cSq - dSq;
-	dcm[0][1] = 2 * (b * c - a * d);
-	dcm[0][2] = 2 * (a * c + b * d);
-	dcm[1][0] = 2 * (b * c + a * d);
-	dcm[1][1] = aSq - bSq + cSq - dSq;
-	dcm[1][2] = 2 * (c * d - a * b);
-	dcm[2][0] = 2 * (b * d - a * c);
-	dcm[2][1] = 2 * (a * b + c * d);
-	dcm[2][2] = aSq - bSq - cSq + dSq;
+	dcm[0][0] = static_cast<float>(aSq + bSq - cSq - dSq);
+	dcm[0][1] = static_cast<float>(2 * (b * c - a * d));
+	dcm[0][2] = static_cast<float>(2 * (a * c + b * d));
+	dcm[1][0] = static_cast<float>(2 * (b * c + a * d));
+	dcm[1][1] = static_cast<float>(aSq - bSq + cSq - dSq);
+	dcm[1][2] = static_cast<float>(2 * (c * d - a * b));
+	dcm[2][0] = static_cast<float>(2 * (b * d - a * c));
+	dcm[2][1] = static_cast<float>(2 * (a * b + c * d));
+	dcm[2][2] = static_cast<float>(aSq - bSq - cSq + dSq);
 }
 void mavlink_dcm_to_euler(const float dcm[3][3], float* roll, float* pitch, float* yaw)
 {
@@ -694,11 +693,11 @@ std::vector<std::string> parseArgs(std::string s)
 	return result;
 }
 
-void HexDump(uint8_t *buffer, int len)
+void HexDump(uint8_t *buffer, uint len)
 {
-	for (int i = 0; i < len; i += 16) {
+	for (uint i = 0; i < len; i += 16) {
 
-		int j = 0;
+		uint j = 0;
 		for (j = i; j < i + 16 && j < len; j++)
 		{
 			uint8_t b = buffer[i + j];
@@ -955,7 +954,7 @@ int console() {
 		sendImage->setLogViewer(logViewer);
 	}
 
-	checkPulse(mavLinkVehicle);
+	//checkPulse(mavLinkVehicle);
 
 	int retries = 0;
 	while (retries++ < 5) {
