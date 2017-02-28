@@ -34,9 +34,8 @@ AirSim available on other platforms as well.
 # How to Use It
 
 ## Manual flights
-Follow the steps above to build and set up the Unreal environment. Plugin your Pixhawk (or compatible device) in your USB port, turn on the RC 
-and press the Play button in Unreal. You should be able to control the drones in the simulator with the RC and fly around. Press F1 key to view 
-several available keyboard shortcuts.
+If you have a Pixhawk flight controller (or compatible device) and a remote control you can manually control the drones in the simulator 
+and fly around. 
 
 ![record screenshot](docs/images/DroneGIF-03.gif)
 
@@ -86,7 +85,7 @@ We welcome contributions to help advance research frontiers.
 
 - [More on our design](docs/design.md)
 - [More on our code structure](docs/code_structure.md)
-- [Contibution Guidelines](docs/contributing.md)
+- [Contribution Guidelines](docs/contributing.md)
 
 ## Contact
 Join the [AirSim group at Facebook](https://www.facebook.com/groups/1225832467530667/) to stay up to date or ask any questions.

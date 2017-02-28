@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VehicleBase.h"
+#include "VehicleConnectorBase.h"
 #include "common/Common.hpp"
 #include "common/CommonStructs.hpp"
 #include "PIPCamera.h"
@@ -20,7 +20,6 @@ public: //types
     typedef msr::airlib::Quaternionr Quaternionr;
     typedef msr::airlib::CollisionInfo CollisionInfo;
     typedef msr::airlib::VectorMath VectorMath;
-    typedef msr::airlib::Vector3r Vector3r;
     typedef msr::airlib::real_T real_T;
     typedef msr::airlib::Utils Utils;
 

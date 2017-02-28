@@ -22,7 +22,7 @@ void ASimModeWorldBase::BeginPlay()
     HP Z840 desktop high-end config seems to be able to go up to 500Hz.
     To increase freq with limited CPU power, switch Barometer to constant ref mode.
     */
-    world_.startAsyncUpdator(1/500.0f);
+    world_.startAsyncUpdator(1/300.0f);
 }
 
 void ASimModeWorldBase::createWorld()
@@ -35,11 +35,15 @@ void ASimModeWorldBase::createWorld()
     for(size_t vi = 0; vi < vehicles_.size(); vi++)
         world_.insert(vehicles_.at(vi).get());
 
-    world_.setCurrentMembersAsInitial();
-
     for (auto& vehicle : vehicles_)
         vehicle->beginPlay();
 }
+
+size_t ASimModeWorldBase::getVehicleCount() const
+{
+    return vehicles_.size();
+}
+
 
 void ASimModeWorldBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {

@@ -67,14 +67,14 @@ if (EIGEN3_INCLUDE_DIR)
 else (EIGEN3_INCLUDE_DIR)
 
  
-   if (${EIGEN_ROOT} STREQUAL "" )
+   if ("${EIGEN_ROOT}" STREQUAL "" )
        message(ERROR " Please set your EIGEN_ROOT install location")
    endif()
 
   find_path(EIGEN3_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library
       PATHS
       $ENV{EIGEN_ROOT}
-      PATH_SUFFIXES eigen3 eigen
+      PATH_SUFFIXES Eigen3 Eigen eigen3 eigen
       NO_DEFAULT_PATH
     )
 

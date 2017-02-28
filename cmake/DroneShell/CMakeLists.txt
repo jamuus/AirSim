@@ -28,7 +28,7 @@ ENDIF()
 # include_directories(include)
 include_directories(
   ${AIRSIM_ROOT}/DroneShell
-  ${AIRSIM_ROOT}/AirLib/deps/rpclib/include;
+  ${RPC_LIB_INCLUDES}
   ${AIRSIM_ROOT}/DroneShell/include;
   ${AIRSIM_ROOT}/AirLib/include
   ${AIRSIM_ROOT}/MavLinkCom/include
@@ -41,7 +41,6 @@ add_executable(DroneShell
 			${AIRSIM_ROOT}/DroneShell/src/main.cpp
 			)
 			
-find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${PROJECT_NAME} AirLib)
 target_link_libraries(${PROJECT_NAME} MavLinkCom)
