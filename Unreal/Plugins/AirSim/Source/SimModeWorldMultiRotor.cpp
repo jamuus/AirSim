@@ -4,7 +4,6 @@
 #include "controllers/DroneControllerBase.hpp"
 #include "physics/PhysicsBody.hpp"
 #include <memory>
-#include "controllers/Settings.h"
 #include "FlyingPawn.h"
 
 void ASimModeWorldMultiRotor::BeginPlay()
@@ -64,7 +63,8 @@ void ASimModeWorldMultiRotor::Tick(float DeltaSeconds)
             if (CameraDirector != nullptr) {
                 APIPCamera* camera = CameraDirector->getCamera(0);
                 if (camera != nullptr) {
-                    camera->saveScreenshot(EPIPCameraType::PIP_CAMERA_TYPE_SCENE, record_folder_path.c_str(), record_tick_count);
+                    FString imagePathPrefix = common_utils::FileSystem::getLogFileNamePath("img_", "", "", false).c_str();
+                    camera->saveScreenshot(EPIPCameraType::PIP_CAMERA_TYPE_SCENE, imagePathPrefix, record_tick_count);
                 }
             }
         }
