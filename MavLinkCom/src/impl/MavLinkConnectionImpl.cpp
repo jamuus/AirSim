@@ -3,10 +3,9 @@
 
 #include "Utils.hpp"
 #include "ThreadUtils.hpp"
-#include <boost/thread.hpp>
 #include "MavLinkConnectionImpl.hpp"
 #include "../serial_com/Port.h"
-#include "../serial_com/OldSerialPort.hpp"
+#include "../serial_com/SerialPort.hpp"
 #include "../serial_com/UdpClientPort.hpp"
 #include "../serial_com/TcpClientPort.hpp"
 #define MAVLINK_PACKED
@@ -20,7 +19,7 @@ STRICT_MODE_ON
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 
-using namespace common_utils;
+using namespace mavlink_utils;
 using namespace mavlinkcom_impl;
 
 MavLinkConnectionImpl::MavLinkConnectionImpl()
