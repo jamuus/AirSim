@@ -2,7 +2,7 @@
 pushd %~d0
 cd ..\..
 
-rem update eigen submodule
+rem update rpclib submodule
 git submodule update --init --recursive
 
 WHERE cmake >nul 2>nul
@@ -28,7 +28,7 @@ if NOT exist %RPCLIB_TARGET_INCLUDE% mkdir %RPCLIB_TARGET_INCLUDE%
 robocopy /MIR external\rpclib\include %RPCLIB_TARGET_INCLUDE%
 robocopy /MIR external\rpclib\build\output\lib %RPCLIB_TARGET_LIB%
 
-echo ### Eigen build complete
+echo ### rpclib build complete
 goto :eof
 
 :buildfailed

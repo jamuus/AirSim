@@ -62,18 +62,30 @@ std::shared_ptr<MavLinkConnection>  MavLinkConnectionImpl::connectLocalUdp(const
 
 std::shared_ptr<MavLinkConnection>  MavLinkConnectionImpl::connectRemoteUdp(const std::string& nodeName, std::string localAddr, std::string remoteAddr, int remotePort)
 {
+	std::string local = localAddr;
+	// just a little sanity check on the local address, if remoteAddr is localhost then localAddr must be also. 
+	if (remoteAddr == "127.0.0.1") {
+		local = "127.0.0.1";
+	}
+
 	std::shared_ptr<UdpClientPort> socket = std::make_shared<UdpClientPort>();
 
-	socket->connect(localAddr, 0, remoteAddr, remotePort);
+	socket->connect(local, 0, remoteAddr, remotePort);
 
 	return createConnection(nodeName, socket);
 }
 
 std::shared_ptr<MavLinkConnection>  MavLinkConnectionImpl::connectTcp(const std::string& nodeName, std::string localAddr, const std::string& remoteIpAddr, int remotePort)
 {
+	std::string local = localAddr;
+	// just a little sanity check on the local address, if remoteAddr is localhost then localAddr must be also. 
+	if (remoteIpAddr == "127.0.0.1") {
+		local = "127.0.0.1";
+	}
+
 	std::shared_ptr<TcpClientPort> socket = std::make_shared<TcpClientPort>();
 
-	socket->connect(localAddr, 0, remoteIpAddr, remotePort);
+	socket->connect(local, 0, remoteIpAddr, remotePort);
 
 	return createConnection(nodeName, socket);
 }
@@ -83,14 +95,12 @@ std::shared_ptr<MavLinkConnection>  MavLinkConnectionImpl::connectSerial(const s
 	std::shared_ptr<SerialPort> serial = std::make_shared<SerialPort>();
 
 	int hr = serial->connect(name.c_str(), baudRate);
-	if (hr < 0)
+	if (hr != 0)
 		throw std::runtime_error(Utils::stringf("Could not open the serial port %s, error=%d", name.c_str(), hr));
 
-	// send this right away.
+	// send this right away just in case serial link is not already configured 
 	if (initString.size() > 0) {
-		hr = serial->write(reinterpret_cast<const uint8_t*>(initString.c_str()), static_cast<int>(initString.size()));
-		if (hr < 0)
-			throw std::runtime_error(Utils::stringf("Could not send initial string to the serial port %s, error=%d", name.c_str(), hr));
+		serial->write(reinterpret_cast<const uint8_t*>(initString.c_str()), static_cast<int>(initString.size()));
 	}
 
 	return createConnection(nodeName, serial);
@@ -167,7 +177,12 @@ void MavLinkConnectionImpl::sendMessage(const MavLinkMessage& msg)
 			const mavlink_message_t& m = reinterpret_cast<const mavlink_message_t&>(msg);
 			std::lock_guard<std::mutex> guard(buffer_mutex);
 			unsigned len = mavlink_msg_to_send_buffer(message_buf, &m);
-			port->write(message_buf, len);
+			try {
+				port->write(message_buf, len);
+			}
+			catch (std::exception& e) {
+				throw std::runtime_error(Utils::stringf("MavLinkConnectionImpl: Error sending message on connection '%s', details: %s", name.c_str(), e.what()));
+			}
 		}
 		{
 			std::lock_guard<std::mutex> guard(telemetry_mutex_);
@@ -192,7 +207,7 @@ void MavLinkConnectionImpl::sendMessage(const MavLinkMessageBase& msg)
 	uint8_t crc_extra = mavlink_message_crcs[m.msgid];
 	int msglen = mavlink_message_lengths[m.msgid];
 	if (m.msgid == MavLinkTelemetry::kMessageId) {
-		msglen = 24; // mavlink doesn't know about our custom telemetry message.
+		msglen = 28; // mavlink doesn't know about our custom telemetry message.
 	}		
 	if (len != msglen) {
 		throw std::runtime_error(Utils::stringf("Message length %d doesn't match expected length%d\n", len, msglen));
@@ -405,7 +420,6 @@ void MavLinkConnectionImpl::publishPackets()
 	}
 }
 
-
 void MavLinkConnectionImpl::getTelemetry(MavLinkTelemetry& result)
 {
 	std::lock_guard<std::mutex> guard(telemetry_mutex_);
@@ -417,4 +431,7 @@ void MavLinkConnectionImpl::getTelemetry(MavLinkTelemetry& result)
 	telemetry_.messagesReceived = 0;
 	telemetry_.messagesSent = 0;
 	telemetry_.renderTime = 0;
+    if (telemetry_.wifiInterfaceName != nullptr) {
+        telemetry_.wifiRssi = port->getRssi(telemetry_.wifiInterfaceName);
+    }
 }

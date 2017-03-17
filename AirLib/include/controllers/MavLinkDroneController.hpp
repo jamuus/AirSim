@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-#ifndef air_ros_MavLinkDroneController_hpp
-#define air_ros_MavLinkDroneController_hpp
+#ifndef msr_airlib_MavLinkDroneController_hpp
+#define msr_airlib_MavLinkDroneController_hpp
 
 #include "common/CommonStructs.hpp"
 #include "common/Common.hpp"
@@ -66,6 +66,8 @@ public:
         // then you will want to change the LocalHostIp accordingly.  This default only works when log viewer and QGC are also on the
         // same machine.  Whatever network you choose it has to be the same one for external
         std::string local_host_ip = "127.0.0.1";
+
+        std::string model = "Generic";
     };
 
 public:
@@ -97,7 +99,6 @@ public:
     virtual bool isSimulationMode() override;
     virtual void setOffboardMode(bool is_set) override;
     virtual void setSimulationMode(bool is_set) override;
-    virtual void setUserInputs(const vector<float>& inputs) override;
     //*** End: VehicleControllerBase implementation ***//
 
 
@@ -107,6 +108,7 @@ public:
     Vector3r getVelocity() override;
     Quaternionr getOrientation() override;
     RCData getRCData() override;
+    void setRCData(const RCData& rcData) override;
     double timestampNow() override;
 
     bool armDisarm(bool arm, CancelableBase& cancelable_action) override;
@@ -121,13 +123,14 @@ public:
     float getCommandPeriod() override;
     float getTakeoffZ() override;
     float getDistanceAccuracy() override;
+
+    virtual bool loopCommandPre() override;
+    virtual void loopCommandPost() override;
 protected: 
     void commandRollPitchZ(float pitch, float roll, float z, float yaw) override;
     void commandVelocity(float vx, float vy, float vz, const YawMode& yaw_mode) override;
     void commandVelocityZ(float vx, float vy, float z, const YawMode& yaw_mode) override;
     void commandPosition(float x, float y, float z, const YawMode& yaw_mode) override;
-    void commandVirtualRC(const RCData& rc_data) override;
-    void commandEnableVirtualRC(bool enable) override;
     const VehicleParams& getVehicleParams() override;
     //*** End: DroneControllerBase implementation ***//
 
