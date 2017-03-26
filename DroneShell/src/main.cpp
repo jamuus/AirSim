@@ -1081,6 +1081,51 @@ public:
 };
 
 
+class GetHookedCommand : public DroneCommand {
+public:
+	GetHookedCommand() : DroneCommand("hooked", "Check if we have hooked something")
+	{
+	}
+
+	bool execute(const DroneCommandParameters& params)
+	{
+		CommandContext* context = params.context;
+		context->tasker.execute([=]() {
+			auto isHooked = context->client.getHooked();
+			///auto gps = context->client.getGpsLocation();
+
+			std::cout << "is hooked: " << isHooked << std::endl;
+			//std::cout << "Global position: lat=" << gps.latitude << ", lon=" << gps.longitude << ", alt=" << gps.altitude << std::endl;
+
+		});
+
+		return false;
+	}
+};
+
+
+class ResetPackageCommand : public DroneCommand {
+public:
+	ResetPackageCommand() : DroneCommand("resetpackage", "Reset the package")
+	{
+	}
+
+	bool execute(const DroneCommandParameters& params)
+	{
+		CommandContext* context = params.context;
+		context->tasker.execute([=]() {
+			context->client.resetPackage();
+
+			//std::cout << "is hooked: " << isHooked << std::endl;
+			//std::cout << "Global position: lat=" << gps.latitude << ", lon=" << gps.longitude << ", alt=" << gps.altitude << std::endl;
+
+		});
+
+		return false;
+	}
+};
+
+
 // std::string beforeScriptStartCallback(const DroneCommandParameters& params, std::string scriptFilePath) 
 // {
 //     return "";
@@ -1104,6 +1149,8 @@ public:
 
 
 std::string server_address("127.0.0.1");
+uint16_t port = 41451;
+
 
 bool parseCommandLine(int argc, const char* argv[])
 {
@@ -1114,7 +1161,10 @@ bool parseCommandLine(int argc, const char* argv[])
             std::string name = arg + 1;
             if (name == "server" && i + 1 < argc) {
                 server_address = argv[++i];
-            } else {
+			}
+			else if (name == "port") {
+				port = (uint16_t)atoi(argv[++i]);
+			} else {
                 return false;
             }
         }
@@ -1140,7 +1190,7 @@ int main(int argc, const char *argv[]) {
         return -1;
     }
 
-    CommandContext command_context{ /*RpcClient*/{server_address}, /*AsyncTasker*/ {} };
+    CommandContext command_context{ /*RpcClient*/{server_address, port}, /*AsyncTasker*/ {} };
 
     command_context.tasker.setErrorHandler([](std::exception& e) {
         try {
@@ -1196,7 +1246,9 @@ int main(int argc, const char *argv[]) {
     CircleByPathCommand circleByPath;
     RecordPoseCommand  recordPose;
     PlayPoseCommand playPose;
-    GetImageCommand imageCommand;
+	GetImageCommand imageCommand;
+	GetHookedCommand getHooked;
+	ResetPackageCommand resetPackage;
 
     //TODO: add command line args help, arg count validation
     shell.addCommand(arm);
@@ -1227,7 +1279,9 @@ int main(int argc, const char *argv[]) {
     shell.addCommand(circleByPath);
     shell.addCommand(recordPose);
     shell.addCommand(playPose);
-    shell.addCommand(imageCommand);
+	shell.addCommand(imageCommand);
+	shell.addCommand(getHooked);
+	shell.addCommand(resetPackage);
 
     while(!shell.readLineAndExecute(&command_context)) {
     }
