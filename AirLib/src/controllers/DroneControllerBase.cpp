@@ -447,6 +447,21 @@ float DroneControllerBase::getZ()
     return getPosition().z();
 }
 
+bool DroneControllerBase::getHooked()
+{
+	return this->ishooked;
+}
+
+void DroneControllerBase::setHooked(bool newhooked)
+{
+	this->ishooked = newhooked;
+}
+
+void DroneControllerBase::resetPackage()
+{
+	this->_resetPackage = true;
+}
+
 bool DroneControllerBase::waitForFunction(WaitFunction function, float max_wait_seconds, CancelableBase& cancelable_action)
 {
     if (max_wait_seconds < 0)
@@ -601,13 +616,22 @@ void DroneControllerBase::moveToPathPosition(const Vector3r& dest, float velocit
         throw std::invalid_argument(VectorMath::toString(dest,"dest vector cannot have NaN: "));
 
     //what is the distance we will travel at this velocity?
-    float expected_dist = velocity * getCommandPeriod();
+    //float expected_dist = velocity * getCommandPeriod();
 
     //get velocity vector
     const Vector3r cur = getPosition();
     const Vector3r cur_dest = dest - cur;
     float cur_dest_norm = cur_dest.norm();
 
+	float P = 1.f;
+	Vector3r velocity_vect = cur_dest * P;
+	if (cur_dest_norm > velocity) {
+		velocity_vect = velocity_vect / cur_dest_norm * velocity;
+	}
+	yaw_mode.is_rate = false;
+	yaw_mode.yaw_or_rate = 0;
+	adjustYaw(velocity_vect, drivetrain, yaw_mode);
+	/*
     //yaw for the direction of travel
     adjustYaw(cur_dest, drivetrain, yaw_mode);
 
@@ -630,8 +654,8 @@ void DroneControllerBase::moveToPathPosition(const Vector3r& dest, float velocit
     //try to maintain altitude if path was in XY plan only, velocity based control is not as good
     if (std::abs(cur.z() - dest.z()) <= getDistanceAccuracy()) //for paths in XY plan current code leaves z untouched, so we can compare with strict equality
         moveByVelocityZ(velocity_vect.x(), velocity_vect.y(), dest.z(), yaw_mode);
-    else
-        moveByVelocity(velocity_vect.x(), velocity_vect.y(), velocity_vect.z(), yaw_mode);
+    else*/
+    moveByVelocity(velocity_vect.x(), velocity_vect.y(), velocity_vect.z(), yaw_mode);
 }
 
 bool DroneControllerBase::isYawWithinMargin(float yaw_target, float margin)

@@ -227,6 +227,12 @@ public: //interface for outside world
     DroneControllerBase() = default;
     virtual ~DroneControllerBase() = default;
 
+	virtual void setHooked(bool);
+	virtual bool getHooked();
+	virtual void resetPackage();
+	bool _resetPackage = false;
+	bool ishooked = false;
+
 protected: //must implement interface by derived class
     //low level commands
     //all angles in degrees, lengths in meters, velocities in m/s, durations in seconds

@@ -49,7 +49,9 @@ public:
     GeoPoint getHomePoint();
     GeoPoint getGpsLocation();
     bool isOffboardMode();
-    bool isSimulationMode();
+	bool isSimulationMode();
+	bool getHooked();
+	void resetPackage();
     std::string getDebugInfo();
 
     //request image

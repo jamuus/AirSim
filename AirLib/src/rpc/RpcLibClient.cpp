@@ -197,6 +197,16 @@ void RpcLibClient::setImageTypeForCamera(int camera_id, DroneControllerBase::Ima
     pimpl_->client.call("setImageTypeForCamera", camera_id, type);
 }
 
+bool RpcLibClient::getHooked()
+{
+	return pimpl_->client.call("getHooked").as<bool>();
+}
+
+void RpcLibClient::resetPackage()
+{
+	pimpl_->client.call("resetPackage");
+}
+
 DroneControllerBase::ImageType RpcLibClient::getImageTypeForCamera(int camera_id)
 {
     return pimpl_->client.call("getImageTypeForCamera", camera_id).as<DroneControllerBase::ImageType>();

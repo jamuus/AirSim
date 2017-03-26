@@ -73,7 +73,9 @@ private:
             connection_info.ip_port = child.getInt("UdpPort", connection_info.ip_port);
             connection_info.serial_port = child.getString("SerialPort", connection_info.serial_port);
             connection_info.baud_rate = child.getInt("SerialBaudRate", connection_info.baud_rate);
-            connection_info.model = child.getString("Model", connection_info.model);
+			connection_info.model = child.getString("Model", connection_info.model);
+
+			connection_info.rpc_server_port = child.getInt("RpcPort", connection_info.rpc_server_port);
         }
         
         // update settings file with any new values that we now have.
@@ -105,6 +107,8 @@ private:
 			changed |= child.setString("SerialPort", connection_info.serial_port);
 			changed |= child.setInt("SerialBaudRate", connection_info.baud_rate);
             changed |= child.setString("Model", connection_info.model);
+
+			changed |= child.setInt("RpcPort", connection_info.rpc_server_port);
 
             // only write to the file if we have new values to save.
 			if (changed) {

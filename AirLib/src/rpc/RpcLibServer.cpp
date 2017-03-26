@@ -97,7 +97,9 @@ RpcLibServer::RpcLibServer(DroneControllerCancelable* drone, string server_addre
     pimpl_->server.bind("getGpsLocation", [&]() -> RpcLibAdapators::GeoPoint { return drone_->getGpsLocation(); });
     pimpl_->server.bind("isOffboardMode", [&]() -> bool { return drone_->isOffboardMode(); });
     pimpl_->server.bind("isSimulationMode", [&]() -> bool { return drone_->isSimulationMode(); });
-    pimpl_->server.bind("getServerDebugInfo", [&]() -> std::string { return drone_->getServerDebugInfo(); });
+	pimpl_->server.bind("getServerDebugInfo", [&]() -> std::string { return drone_->getServerDebugInfo(); });
+	pimpl_->server.bind("getHooked", [&]() -> bool { return drone_->getHooked(); });
+	pimpl_->server.bind("resetPackage", [&]() { drone_->resetPackage(); });
 
     pimpl_->server.suppress_exceptions(true);
 }

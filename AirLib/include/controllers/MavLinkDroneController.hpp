@@ -68,6 +68,8 @@ public:
         std::string local_host_ip = "127.0.0.1";
 
         std::string model = "Generic";
+
+		int rpc_server_port = 41451;
     };
 
 public:

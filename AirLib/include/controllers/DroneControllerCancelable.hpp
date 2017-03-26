@@ -176,10 +176,20 @@ public:
         return controller_->isSimulationMode();
     }
 
-    bool isOffboardMode()
-    {
-        return controller_->isOffboardMode();
-    }
+	bool isOffboardMode()
+	{
+		return controller_->isOffboardMode();
+	}
+
+	bool getHooked()
+	{
+		return controller_->getHooked();
+	}
+
+	void resetPackage()
+	{
+		controller_->resetPackage();
+	}
 
     std::string getServerDebugInfo()
     {
