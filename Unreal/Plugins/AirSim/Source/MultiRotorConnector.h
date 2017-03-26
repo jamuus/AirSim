@@ -55,6 +55,7 @@ private:
     msr::airlib::Environment environment_;
     AFlyingPawn* vehicle_pawn_;
     std::string api_server_address_;
+	int api_server_port_;
 
     std::unique_ptr<msr::airlib::MultiRotorParams> vehicle_params_;
     std::unique_ptr<msr::airlib::DroneControllerCancelable> controller_cancelable_;

@@ -1,7 +1,10 @@
 #include "AirSim.h"
 #include "VehiclePawnBase.h"
 #include "AirBlueprintLib.h"
-
+#include "HookPoint.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "ActorReset.h"
+#include "ConstraintResetter.h"
 
 void AVehiclePawnBase::PostInitializeComponents()
 {
@@ -28,6 +31,22 @@ void AVehiclePawnBase::NotifyHit(class UPrimitiveComponent* MyComp, class AActor
     state_.collison_info.impact_point = toNedMeters(Hit.ImpactPoint);
     state_.collison_info.position = toNedMeters(getPosition());
     state_.collison_info.penetration_depth = Hit.PenetrationDepth / world_to_meters;
+
+	if (Other->GetName() == "HookPoint") {
+		UAirBlueprintLib::LogMessage(TEXT("Hooked package"), TEXT(""), LogDebugLevel::Informational);
+		this->isHooked = true;
+
+		auto c = (UHookPoint*)Other->GetComponentByClass(UHookPoint::StaticClass());
+		UPhysicsConstraintComponent *constraintComponent = c->constraint->GetConstraintComp();
+
+		constraintComponent->SetConstrainedComponents(
+			MyComp,
+			FName(),
+			constraintComponent->ConstraintActor2->GetRootPrimitiveComponent(),
+			FName()
+		);
+		this->hookPoint = c;
+	}
 
     UAirBlueprintLib::LogMessage(TEXT("Collison Count:"), FString::FromInt(state_.collison_info.collison_count), LogDebugLevel::Failure);
 }
@@ -70,9 +89,25 @@ APIPCamera* AVehiclePawnBase::getFpvCamera()
 
 void AVehiclePawnBase::reset()
 {
-    state_ = initial_state_;
-    this->SetActorLocation(state_.start_location, false, nullptr, ETeleportType::TeleportPhysics);
-    this->SetActorRotation(state_.start_rotation, ETeleportType::TeleportPhysics);
+	state_ = initial_state_;
+	this->SetActorLocation(state_.start_location, false, nullptr, ETeleportType::TeleportPhysics);
+	this->SetActorRotation(state_.start_rotation, ETeleportType::TeleportPhysics);
+}
+
+void AVehiclePawnBase::resetPackage()
+{
+	UAirBlueprintLib::LogMessage(TEXT("restPackage"), TEXT(""), LogDebugLevel::Informational);
+	if (this->hookPoint != nullptr) {
+		UAirBlueprintLib::LogMessage(TEXT("yaas"), TEXT(""), LogDebugLevel::Informational);
+		auto t1 = (UConstraintResetter*)this->hookPoint->constraint->GetComponentByClass(UConstraintResetter::StaticClass());
+		t1->reset();
+		auto t2 = (UActorReset*)this->hookPoint->package->GetComponentByClass(UActorReset::StaticClass());
+		t2->reset();
+		auto t3 = (UActorReset*)this->hookPoint;
+		t3->reset();
+
+
+	}
 }
 
 const AVehiclePawnBase::GeoPoint& AVehiclePawnBase::getHomePoint() const

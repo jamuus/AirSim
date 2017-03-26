@@ -124,7 +124,8 @@ void MultiRotorConnector::startApiServer()
     controller_cancelable_.reset(new msr::airlib::DroneControllerCancelable(
         vehicle_.getController()));
     api_server_address_ = Settings::singleton().getString("LocalHostIp", "127.0.0.1");
-    rpclib_server_.reset(new msr::airlib::RpcLibServer(controller_cancelable_.get(), api_server_address_));
+	api_server_port_ = Settings::singleton().getInt("RpcPort", 41451);
+    rpclib_server_.reset(new msr::airlib::RpcLibServer(controller_cancelable_.get(), api_server_address_, api_server_port_));
     rpclib_server_->start();
 
 }

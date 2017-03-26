@@ -3,6 +3,7 @@
 #include "AirBlueprintLib.h"
 #include "controllers/DroneControllerBase.hpp"
 #include "physics/PhysicsBody.hpp"
+#include "common/common_utils/FileSystem.hpp"
 #include <memory>
 #include "FlyingPawn.h"
 
@@ -68,6 +69,11 @@ void ASimModeWorldMultiRotor::Tick(float DeltaSeconds)
                 }
             }
         }
+		auto quad = CameraDirector->TargetPawn;
+		controller->setHooked(quad->isHooked);
+		if (controller->_resetPackage) {
+			quad->resetPackage();
+		}
     }
 
     Super::Tick(DeltaSeconds);

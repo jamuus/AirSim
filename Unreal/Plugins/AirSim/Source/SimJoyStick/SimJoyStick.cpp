@@ -10,6 +10,8 @@
 #include <XInput.h>
 #include "HideWindowsPlatformTypes.h"
 
+#pragma comment(lib, "XInput.lib")
+
 struct SimJoyStick::impl {
 public:
     void getJoyStickState(unsigned int index, SimJoyStick::State& state)

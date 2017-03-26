@@ -39,6 +39,8 @@ private:
     msr::airlib::World world_;
     msr::airlib::FastPhysicsEngine physics_engine_;
 
+public:
     std::vector<VehiclePtr> vehicles_;
+private:
     msr::airlib::StateReporterWrapper reporter_;
 };

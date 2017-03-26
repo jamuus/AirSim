@@ -5,6 +5,7 @@
 #include "common/CommonStructs.hpp"
 #include "PIPCamera.h"
 #include "GameFramework/Pawn.h"
+#include "HookPoint.h"
 #include "VehiclePawnBase.generated.h"
 
 
@@ -46,6 +47,8 @@ public: //modifiable properties
     UFUNCTION(BlueprintCallable, Category = "Debugging")
     void toggleTrace();
 
+	void resetPackage();
+
 
 public: //interface
     //overridden from pawn
@@ -81,6 +84,9 @@ public: //interface
     static Quaternionr toQuaternionr(const FQuat& q, bool convert_to_ned);
     Vector3r toNedMeters(const FVector& position) const;
     FVector  toNeuUU(const Vector3r& position) const;
+
+	bool isHooked = false;
+	UHookPoint *hookPoint;
 
 private: //methods
     bool canTeleportWhileMove()  const;
