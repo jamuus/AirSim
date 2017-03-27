@@ -14,6 +14,7 @@
 #include "Utils.hpp"
 #include <memory>
 #include <chrono>
+#include <vector>
 
 using namespace mavlinkcom;
 
@@ -45,9 +46,6 @@ private:
 
 class Command
 {
-	int subscription = 0;
-protected:
-	std::shared_ptr<MavLinkVehicle> vehicle;
 public:
 	Command();
 	~Command();
@@ -55,11 +53,22 @@ public:
 	std::string Name;
 
 	virtual void Close();
-	virtual bool Parse(std::vector<std::string>& args) = 0;
+	virtual bool Parse(const std::vector<std::string>& args) = 0;
 	virtual void PrintHelp() = 0;
 	// you must call this method if you want HandleMessage to be called subsequently.
 	virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
 	virtual void HandleMessage(const MavLinkMessage& msg) {}
+
+    static std::vector<std::string> parseArgs(std::string s);
+    static Command* create(const std::string& line);
+    static Command* create(const std::vector<std::string>& args);
+    static std::vector<Command*> const * getAllCommand();
+    static void setAllCommand(std::vector<Command*> const * all_commands);
+    static constexpr const char* kCommandLogPrefix = "cmd:";
+protected:
+    std::shared_ptr<MavLinkVehicle> vehicle;
+private:
+    int subscription = 0;
 };
 
 class ArmDisarmCommand : public Command
@@ -70,7 +79,7 @@ public:
 		this->Name = "arm|disarm";
 		this->arm = false;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("arm|disam - arms or disarms the drone\n");
@@ -88,7 +97,7 @@ public:
 		this->Name = "params [logfile] [set name value] [get name]";
 		this->ptr = NULL;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("params [logfile]- fetches the PX4 parameters and prints them or writes them to a file.\n");
@@ -130,7 +139,7 @@ public:
     GetSetParamCommand() {
         this->Name = "param [set name value] [get name]";
     }
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
     virtual void PrintHelp() {
         printf("param [set name value] [get name]  -- get or set a parameter by name (use params to see the list).\n");
@@ -151,7 +160,7 @@ public:
 	TakeOffCommand() {
 		this->Name = "takeoff alt";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("takeoff alt - take off to given altitude above ground (in meters).\n");
@@ -171,7 +180,7 @@ public:
 	LandCommand() {
 		this->Name = "land";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("land  - auto-land the drone at the current location.\n");
@@ -191,7 +200,7 @@ public:
 	RtlCommand() {
 		this->Name = "rtl";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("rtl  - fly home (return to launch point).\n");
@@ -210,7 +219,7 @@ public:
     LoiterCommand() {
         this->Name = "loiter";
     }
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
     virtual void PrintHelp() {
         printf("loiter  - stay at current position.\n");
@@ -226,7 +235,7 @@ public:
 	RequestImageCommand() {
 		this->Name = "req_img";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("req_img  - request image.\n");
@@ -246,7 +255,7 @@ public:
 	MissionCommand() {
 		this->Name = "mission";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("mission  - fly preprogrammed mavlink mission.\n");
@@ -266,7 +275,7 @@ public:
 	CapabilitiesCommand() {
 		this->Name = "cap";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("cap  - fetch and print drone capabilities.\n");
@@ -275,6 +284,27 @@ public:
 	virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
 
 };
+
+
+class BatteryCommand : public Command
+{
+	bool got_battery_;
+public:
+	BatteryCommand() {
+		this->Name = "battery";
+		this->got_battery_ = false;
+	}
+	virtual bool Parse(const std::vector<std::string>& args);
+
+	virtual void PrintHelp() {
+		printf("battery  - print next battery message.\n");
+	}
+
+	virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
+	virtual void HandleMessage(const MavLinkMessage& msg);
+
+};
+
 
 class StatusCommand : public Command
 {
@@ -286,7 +316,7 @@ public:
 	StatusCommand() {
 		this->Name = "status";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("status  - print next SYS_STATUS message.\n");
@@ -307,7 +337,7 @@ public:
 	PositionCommand() {
 		this->Name = "pos [home]";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("pos [home] - print current local and global position and optionally set this as the home position.\n");
@@ -333,7 +363,7 @@ public:
 	void setLogViewer(std::shared_ptr<MavLinkNode> logViewerProxy) {
 		logViewer = logViewerProxy;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("sendimage filename width height - send the specified image to remote proxy.\n");
@@ -341,6 +371,50 @@ public:
 
 	virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
 
+};
+
+
+class PlayLogCommand : public Command
+{
+public:
+    PlayLogCommand() {
+        this->Name = "playlog filename";
+    }
+
+    virtual bool Parse(const std::vector<std::string>& args);
+
+    virtual void PrintHelp() {
+        printf("playlog filename - play commands in specified .mavlink file.\n");
+    }
+
+    virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
+
+private:
+    MavLinkLog log_;
+    float quaternion_[4];
+    float x, y, z;
+};
+
+
+class DumpLogCommandsCommand : public Command
+{
+public:
+    DumpLogCommandsCommand() {
+        this->Name = "dumplogcommands log_folder";
+    }
+
+    virtual bool Parse(const std::vector<std::string>& args);
+
+    virtual void PrintHelp() {
+        printf("dumplogcommands log_folder - dump commands for .mavlink file found in log folder output in subfolder.\n");
+    }
+
+    virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
+private:
+    static void processLogCommands(MavLinkLog& log, const std::string& out_folder);
+
+private:
+    std::string log_folder_;
 };
 
 
@@ -374,6 +448,7 @@ protected:
 	bool is_yaw; // is target a heading or a rate (true=heading, false=rate).
 	float theading; // target heading
 	float targetSpeed;
+	float cruise_speed_;
 	bool paused = false;
 	const float nearDelta = 0.5f; // meters
 	const float almostStationery = 0.6f;
@@ -382,10 +457,10 @@ public:
 		this->Name = "goto x,y,z";
 		channel = nullptr;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
-		printf("goto x,y,z  - move the drone to local coordinates x,y,z (in meters).\n");
+		printf("goto x y z [speed] - move the drone to local coordinates x,y,z (in meters).\n");
 	}
 
 	virtual void Close();
@@ -431,7 +506,7 @@ public:
 	void setLogViewer(std::shared_ptr<MavLinkNode> logViewerProxy) {
 		logViewer = logViewerProxy;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("orbit radius [speed] - orbit the current location & altitude at the given radius (in meters) with optional speed (default 1m/s).\n");
@@ -473,7 +548,7 @@ public:
 	RotateCommand() {
 		this->Name = "rotate [speed]";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("rotate [speed] - rotate the drone at current location with given degrees/s\n");
@@ -498,7 +573,7 @@ public:
         this->Name = "square length [speed]";
         length_ = 0;
     }
-    virtual bool Parse(std::vector<std::string>& args);
+    virtual bool Parse(const std::vector<std::string>& args);
 
     virtual void PrintHelp() {
         printf("square length [speed] - make a square of given length at given speed (default 0.2m/s).\n");
@@ -602,7 +677,7 @@ public:
 	WiggleCommand() {
 		this->Name = "wiggle [distance] [angle] [direction]";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("wiggle - wiggle the drone using low level attitude control.\n");
@@ -632,7 +707,7 @@ public:
 	AltHoldCommand() {
 		this->Name = "hold";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("hold alt kp ki kd  - move to given altitude using given PID controls and hold there.\n");
@@ -646,20 +721,12 @@ public:
 
 class FtpCommand : public Command
 {
-	enum FtpCommandEnum {
-		none, list, cd, get, put, remove
-	};
-	FtpCommandEnum cmd;
-	std::string source;
-	std::string target;
-	std::string cwd;
-	std::shared_ptr<MavLinkFtpClient> client;
 public:
 	FtpCommand() {
 		this->Name = "ls [dir]\ncd name\nget remoteFile [localFile]\nput localFile remoteFile\nrm remoteFile]";
 		this->cmd = none;
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("ftp command allows you to transfer files to/from the remote drone, if the drone supports the MAV_PROTOCOL_CAPABILITY_FTP.\n");
@@ -669,7 +736,27 @@ public:
 
 	virtual void Close();
 private:
+
 	std::string resolve(std::string name);
+	void doList();
+	void doGet();
+	void doPut();
+	void doRemove();
+	void monitor();
+	bool parse(const std::string& name, bool& wildcards) const;
+	bool matches(const std::string& pattern, const std::string& name) const;
+	void startMonitor();
+	void stopMonitor();
+	enum FtpCommandEnum {
+		none, list, cd, get, put, remove
+	};
+	FtpCommandEnum cmd;
+	std::string source;
+	std::string target;
+	std::string cwd;
+	std::shared_ptr<MavLinkFtpClient> client;
+	MavLinkFtpProgress progress;
+	std::thread monitorThread;
 };
 
 class NshCommand : public Command
@@ -678,7 +765,7 @@ public:
 	NshCommand() {
 		this->Name = "nsh - start NuttX Shell";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("nsh - start NuttX Shell.\n");
@@ -698,7 +785,7 @@ public:
 	SetMessageIntervalCommand() {
 		this->Name = "SetMessageInterval msgid interval - turn on/off a given mavlink stream";
 	}
-	virtual bool Parse(std::vector<std::string>& args);
+	virtual bool Parse(const std::vector<std::string>& args);
 
 	virtual void PrintHelp() {
 		printf("SetMessageInterval msgid interval - turn on/off a given mavlink stream.\n");
@@ -714,5 +801,22 @@ private:
 };
 
 
+class WaitForAltitudeCommand : public Command
+{
+public:
+	WaitForAltitudeCommand() {
+		this->Name = "WaitForAltitude z dz dvz";
+	}
+	virtual bool Parse(const std::vector<std::string>& args);
+
+	virtual void PrintHelp() {
+		printf("WaitForAltitudeCommand z dz dvz - wait for drone to get with in dz of the specified local z, and settle down to given velocity delta (dvz).\n");
+	}
+
+	virtual void Execute(std::shared_ptr<MavLinkVehicle> com);
+private:
+	float z, dz, dvz;
+
+};
 
 #endif

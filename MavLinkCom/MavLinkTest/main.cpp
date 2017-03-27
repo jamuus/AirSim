@@ -14,7 +14,7 @@
 #include <vector>
 #include <string.h>
 #include <functional>
-
+#include <mutex>
 #include <map>
 #include <ctime>
 #include "UnitTests.h"
@@ -139,6 +139,7 @@ std::shared_ptr<MavLinkLog> inLogFile;
 std::shared_ptr<MavLinkLog> outLogFile;
 std::thread telemetry_thread;
 bool telemetry = false;
+std::mutex logLock;
 
 #if defined(__cpp_lib_experimental_filesystem)
 
@@ -149,18 +150,6 @@ void ConvertLogFileToJson(std::string logFile)
     std::string fullPath = FileSystem::getFullPath(logFile);
     printf("Converting logfile: %s...", fullPath.c_str());
     try {
-
-        //FILE* ptr = fopen(fullPath.c_str(), "rb");
-
-        //int a = fgetc(ptr);
-        //int b = fgetc(ptr);
-        //int c = fgetc(ptr);
-        //int d = fgetc(ptr);
-
-        //printf("0x%02x 0x%02x 0x%02x 0x%02x\n", a, b, c, d);
-
-        //fclose(ptr);
-
         MavLinkMessage msg;
 
         MavLinkLog log;
@@ -172,8 +161,9 @@ void ConvertLogFileToJson(std::string logFile)
         MavLinkLog jsonLog;
         jsonLog.openForWriting(jsonPath.generic_string(), true);
 
-        while (log.read(msg)) {
-            jsonLog.write(msg);
+        uint64_t timestamp;
+        while (log.read(msg, timestamp)) {
+            jsonLog.write(msg, timestamp);
         }
         jsonLog.close();
         printf("done\n");
@@ -747,53 +737,6 @@ bool ParseCommandLine(int argc, const char* argv[])
 }
 
 
-std::vector<std::string> parseArgs(std::string s)
-{
-	auto start = s.begin();
-	std::vector<std::string> result;
-	auto theEnd = s.end();
-	auto it = s.begin();
-	while (it != theEnd)
-	{
-		char ch = *it;
-		if (ch == ' ' || ch == '\t' || ch == ',') {
-			if (start < it)
-			{
-				result.push_back(std::string(start, it));
-			}
-			it++;
-			start = it;
-		}
-		else if (*it == '"')
-		{
-			// treat literals as one word
-			it++;
-			start = it;
-			while (*it != '"' && it != theEnd)
-			{
-				it++;
-			}
-			auto end = it;
-			if (start < it)
-			{
-				result.push_back(std::string(start, end));
-			}
-			if (*it == '"') {
-				it++;
-			}
-			start = it;
-		}
-		else {
-			it++;
-		}
-	}
-	if (start < theEnd)
-	{
-		result.push_back(std::string(start, s.end()));
-	}
-	return result;
-}
-
 void HexDump(uint8_t *buffer, uint len)
 {
 	for (uint i = 0; i < len; i += 16) {
@@ -1050,7 +993,9 @@ int console() {
 	NshCommand* nshCommand = new NshCommand();
 
 	std::vector<Command*> cmdTable;
-	cmdTable.push_back(new ArmDisarmCommand());
+    Command::setAllCommand(&cmdTable);
+    
+    cmdTable.push_back(new ArmDisarmCommand());
 	cmdTable.push_back(new TakeOffCommand());
 	cmdTable.push_back(new LandCommand());
 	cmdTable.push_back(new MissionCommand());
@@ -1063,10 +1008,15 @@ int console() {
 	cmdTable.push_back(new PositionCommand());
 	cmdTable.push_back(new RequestImageCommand());
 	cmdTable.push_back(new FtpCommand());
+    cmdTable.push_back(new PlayLogCommand());
+    cmdTable.push_back(new DumpLogCommandsCommand());
 	cmdTable.push_back(nshCommand);
-	cmdTable.push_back(new AltHoldCommand());
+	// this is advanced command that can get us into trouble on real drone, so remove it for now.
+	//cmdTable.push_back(new AltHoldCommand());
 	cmdTable.push_back(sendImage = new SendImageCommand());
 	cmdTable.push_back(new SetMessageIntervalCommand());
+	cmdTable.push_back(new BatteryCommand());
+	cmdTable.push_back(new WaitForAltitudeCommand());
 
 	if (!connect(mavLinkVehicle)) {
 		return 1;
@@ -1076,6 +1026,7 @@ int console() {
 
         MavLinkStatustext statustext;
 		if (inLogFile != nullptr && inLogFile->isOpen()) {
+			std::lock_guard<std::mutex> lock(logLock);
 			inLogFile->write(message);
 		}
         switch (message.msgid) {
@@ -1175,13 +1126,14 @@ int console() {
 
 		line = mavlink_utils::Utils::trim(line, ' ');
 
+
 		if (line.length() > 0)
 		{
 			if (line.length() == 0)
 			{
 				continue;
 			}
-			std::vector<std::string> args = parseArgs(line);
+			std::vector<std::string> args = Command::parseArgs(line);
 			std::string cmd = args[0];
 
 			if (cmd == "x")
@@ -1213,20 +1165,20 @@ int console() {
 				}
 			}
 			else {
-				Command* selected = nullptr;
-				for (size_t i = 0; i < cmdTable.size(); i++)
-				{
-					Command* command = cmdTable[i];
-					if (command->Parse(args))
-					{
-						// found it!
-						selected = command;
-						break;
-					}
-				}
+				Command* selected = Command::create(args);
+                //add command text in log
+                if (selected != nullptr && inLogFile != nullptr && inLogFile->isOpen()) {
+                    auto str = std::string(Command::kCommandLogPrefix) + line;
+                    MavLinkStatustext st;
+                    strncpy(st.text, str.c_str(), 50);
+                    MavLinkMessage m;
+                    st.encode(m, 0);
+                    std::lock_guard<std::mutex> lock(logLock);
+                    inLogFile->write(m);
+                }
 
 				if (currentCommand != nullptr && currentCommand != selected) {
-					// close previous command.
+                    // close previous command.
 					currentCommand->Close();
 				}
 				currentCommand = selected;
@@ -1238,7 +1190,11 @@ int console() {
 					}
 					catch (const std::exception& e)
 					{
-						printf("Error: %s\n", e.what());
+						const char* reason = e.what();
+						if (reason == nullptr) {
+							reason = "(unknown)";
+						}
+						printf("Error: %s\n", reason);
 					}
 				}
 				else
@@ -1306,7 +1262,6 @@ int main(int argc, const char* argv[])
 	catch (const std::exception& e)
 	{
 		printf("Exception: %s\n", e.what());
-		return 1;
 	}
 
 	CloseLogFiles();

@@ -148,11 +148,13 @@ AsyncResult<bool> MavLinkVehicleImpl::allowFlightControlOverUsb()
 
 void MavLinkVehicleImpl::handleMessage(std::shared_ptr<MavLinkConnection> connection, const MavLinkMessage& msg)
 {
-	if (msg.sysid != getTargetSystemId())
-	{
-		// we only care about messages from our intended remote node. 
-		return;
-	}
+    //status messages should usually be only sent by actual PX4. However if someone else is sending it to, we should listen it.
+    //in future it would be good to have ability to add system IDs we are interested in
+	//if (msg.sysid != getTargetSystemId())
+	//{
+	//	// we only care about messages from our intended remote node. 
+	//	return;
+	//}
 
 	switch (msg.msgid) {
     case MavLinkHeartbeat::kMessageId: { // MAVLINK_MSG_ID_HEARTBEAT:
@@ -184,7 +186,7 @@ void MavLinkVehicleImpl::handleMessage(std::shared_ptr<MavLinkConnection> connec
                     // try and take it back.
                     vehicle_state_.controls.offboard = false;
                     control_requested_ = false;
-                    printf("MavLinkVehicle: detected mode change, will top trying to do offboard control\n");
+                    printf("MavLinkVehicle: detected mode change, will stop trying to do offboard control\n");
                 }
             }
 		}
@@ -419,6 +421,20 @@ void MavLinkVehicleImpl::handleMessage(std::shared_ptr<MavLinkConnection> connec
                 vehicle_state_.controls.offboard = true;
             }
         }
+        break;
+    }
+    case MavLinkAttPosMocap::kMessageId: {
+        MavLinkAttPosMocap mocap;
+        mocap.decode(msg);
+        std::lock_guard<std::mutex> guard(state_mutex_);
+        state_version_++;
+        updateReadStats(msg);
+        vehicle_state_.mocap.pose.pos.x = mocap.x;
+        vehicle_state_.mocap.pose.pos.y = mocap.y;
+        vehicle_state_.mocap.pose.pos.z = mocap.z;
+        Utils::copy(mocap.q, vehicle_state_.mocap.pose.q);
+        vehicle_state_.mocap.updated_on = mocap.time_usec;
+        break;
     }
     default:
         break;
@@ -452,6 +468,27 @@ AsyncResult<bool> MavLinkVehicleImpl::takeoff(float z, float pitch, float yaw)
 	cmd.Longitude = INFINITY;
 	cmd.Altitude = targetAlt;
 	return sendCommandAndWaitForAck(cmd);
+}
+
+AsyncResult<bool> MavLinkVehicleImpl::waitForAltitude(float z, float dz, float dvz)
+{
+	std::shared_ptr<MavLinkConnection> con = ensureConnection();
+	AsyncResult<bool> result([=](int subscription) {
+		con->unsubscribe(subscription);
+	});
+
+	int subscription = con->subscribe([=](std::shared_ptr<MavLinkConnection> connection, const MavLinkMessage& m) {
+		if (m.msgid == static_cast<uint8_t>(MavLinkLocalPositionNed::kMessageId)) {
+			MavLinkLocalPositionNed pos;
+			pos.decode(m);
+
+			if (fabs(pos.z - z) <= dz && fabs(pos.vz) < dvz) {
+				result.setResult(true);
+			}
+		}
+	});
+
+	return result;
 }
 
 AsyncResult<bool> MavLinkVehicleImpl::land(float yaw, float lat, float lon, float altitude)
@@ -605,6 +642,9 @@ void MavLinkVehicleImpl::moveToGlobalPosition(float lat, float lon, float alt, b
 
 AsyncResult<bool> MavLinkVehicleImpl::setMode(int mode, int customMode, int customSubMode)
 {
+	// this mode change take precedence over offboard mode.
+	control_requested_ = false;
+
     if ((vehicle_state_.mode & static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_HIL_ENABLED)) != 0) {
         mode |= static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_HIL_ENABLED); // must preserve this flag.
     }
@@ -621,7 +661,7 @@ AsyncResult<bool> MavLinkVehicleImpl::setMode(int mode, int customMode, int cust
 
 AsyncResult<bool>  MavLinkVehicleImpl::setPositionHoldMode()
 {
-    return setMode(static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) |
+    return setMode(static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
         static_cast<int>(PX4_CUSTOM_MAIN_MODE_POSCTL));
 }
 
@@ -651,8 +691,8 @@ AsyncResult<bool> MavLinkVehicleImpl::setMissionMode()
 
 AsyncResult<bool> MavLinkVehicleImpl::loiter()
 {
-    return setMode(static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) |
-        static_cast<int>(PX4_CUSTOM_MAIN_MODE_AUTO) |
+    return setMode(static_cast<int>(MAV_MODE_FLAG::MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
+        static_cast<int>(PX4_CUSTOM_MAIN_MODE_AUTO),
         static_cast<int>(PX4_CUSTOM_SUB_MODE_AUTO_LOITER));
 }
 
@@ -739,8 +779,7 @@ void MavLinkVehicleImpl::moveToLocalPosition(float x, float y, float z, bool isY
 	msg.x = x; msg.y = y; msg.z = z;
 	msg.coordinate_frame = static_cast<uint8_t>(MAV_FRAME::MAV_FRAME_LOCAL_NED);
 
-	msg.type_mask = MAVLINK_MSG_SET_POSITION_TARGET_IGNORE_VELOCITY |
-		MAVLINK_MSG_SET_POSITION_TARGET_IGNORE_ACCELERATION;
+	msg.type_mask = MAVLINK_MSG_SET_POSITION_TARGET_IGNORE_ACCELERATION;
     if (isYaw) {
 		msg.type_mask |= MAVLINK_MSG_SET_POSITION_TARGET_IGNORE_YAW_RATE;
 		msg.yaw = yawOrRate;

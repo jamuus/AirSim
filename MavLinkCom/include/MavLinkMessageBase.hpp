@@ -46,9 +46,13 @@ namespace mavlinkcom
 		uint8_t msgid = 0;
 		uint8_t sysid = 0;   ///< ID of message sender system/aircraft
 		uint8_t compid = 0;  ///< ID of the message sender component
+        uint64_t timestamp = 0;
 
 		// unpack the given message
 		void decode(const MavLinkMessage& msg);
+
+		// encode this message into given message buffer
+		void encode(MavLinkMessage& msg, int seq) const;
 
 		// find what type of message this is and decode it on the heap (call delete when you are done with it).
 		static MavLinkMessageBase* lookup(const MavLinkMessage& msg);
@@ -97,8 +101,6 @@ namespace mavlinkcom
 		std::string uint16_t_array_tostring(int len, const uint16_t* field);
 		std::string float_array_tostring(int len, const float* field);
 		std::string float_tostring(float value);
-
-		friend class mavlinkcom_impl::MavLinkConnectionImpl;
 	};
 
 	// Base class for all strongly typed MavLinkCommand classes defined in MavLinkMessages.hpp

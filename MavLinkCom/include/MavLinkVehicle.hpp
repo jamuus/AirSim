@@ -28,7 +28,7 @@ namespace mavlinkcom {
 		// It returns false if the command is rejected.
 		AsyncResult<bool> armDisarm(bool arm);
 		AsyncResult<bool> takeoff(float z = -2.5, float pitch = 0, float yaw = 0);
-		AsyncResult<bool> land(float yaw, float lat = 0, float lon = 0, float altitude = 0);
+		AsyncResult<bool> land(float yaw, float  lat = 0, float lon = 0, float altitude = 0);
 		AsyncResult<bool> returnToHome();
 		AsyncResult<bool> loiter();
         AsyncResult<bool> setPositionHoldMode();
@@ -37,6 +37,11 @@ namespace mavlinkcom {
         AsyncResult<bool> setMissionMode();
 		AsyncResult<MavLinkHomePosition> waitForHomePosition();
 		AsyncResult<bool> allowFlightControlOverUsb();
+        AsyncResult<bool>  setMode(int modeFlags, int customMode = 0, int customSubMode = 0);
+
+		// wait for drone to reach specified local z, ensure it is not just blowing past the z location,
+		// wait for it to settle down with dz delta, and dvz delta velocity.
+		AsyncResult<bool> waitForAltitude(float z, float dz, float dvz);
 
 		// request OFFBOARD control.  
 		void requestControl();
@@ -51,6 +56,7 @@ namespace mavlinkcom {
 		void moveToGlobalPosition(float lat, float lon, float alt, bool isYaw, float yawOrRate);
 		void moveByLocalVelocity(float vx, float vy, float vz, bool isYaw, float yawOrRate);
 		void moveByLocalVelocityWithAltHold(float vx, float vy, float z, bool isYaw, float yawOrRate);
+        void writeMessage(MavLinkMessageBase& message, bool update_stats = true);
 
 		// low level control, only use this one if you really know what you are doing!!
 		bool isAttitudeControlSupported();

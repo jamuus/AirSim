@@ -27,8 +27,6 @@ namespace mavlinkcom_impl {
 		MavLinkVehicleImpl(int local_system_id, int local_component_id);
 		~MavLinkVehicleImpl();
 	public:
-		// Send command to arm or disarm the drone.  Drone will not fly until it is armed successfully.
-		// It returns false if the command is rejected.
 		AsyncResult<bool> armDisarm(bool arm);
 		AsyncResult<bool> takeoff(float z = -2.5, float pitch = 0, float yaw = 0);
 		AsyncResult<bool> land(float yaw, float lat = 0, float lon = 0, float altitude = 0);
@@ -40,7 +38,9 @@ namespace mavlinkcom_impl {
         AsyncResult<bool> setMissionMode();
 		AsyncResult<MavLinkHomePosition> waitForHomePosition();
 		AsyncResult<bool> allowFlightControlOverUsb();
-		
+		AsyncResult<bool> waitForAltitude(float z, float dz, float dvz);
+        AsyncResult<bool>  setMode(int modeFlags, int customMode = 0, int customSubMode = 0);
+
 		// request OFFBOARD control.  
         void requestControl();
 		// release OFFBOARD control
@@ -64,19 +64,18 @@ namespace mavlinkcom_impl {
 		// Move drone by directly controlling the attitude of the drone (units are degrees).
 		// If the rollRate, pitchRate and yawRate are all zero then you will get the default rates provided by the drone.
 		void moveByAttitude(float roll, float pitch, float yaw, float rollRate, float pitchRate, float yawRate, float thrust);
+        void writeMessage(MavLinkMessageBase& message, bool update_stats = true);
 
 		int getVehicleStateVersion();
 		const VehicleState& getVehicleState();
 
 		uint32_t getTimeStamp();
 	private:
-		void writeMessage(MavLinkMessageBase& message, bool update_stats = true);
 		virtual void handleMessage(std::shared_ptr<MavLinkConnection> connection, const MavLinkMessage& message);
 		void resetCommandParams(MavLinkCommandLong& cmd);
 		void updateReadStats(const MavLinkMessage& msg);
 		void checkOffboard();
 		bool getRcSwitch(int channel, float threshold);
-        AsyncResult<bool>  setMode(int modeFlags, int customMode = 0, int customSubMode = 0);
 
 	private:
 		std::mutex state_mutex_;
